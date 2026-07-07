@@ -38,3 +38,21 @@ python -m gesture_control
 
 macOS will require Camera, Accessibility, and Automation permissions for the
 full control path.
+
+## Package macOS App
+
+```bash
+python scripts/package_app.py
+```
+
+The packaged app target is `dist/GestureControl.app`. This local build is not
+notarized, so macOS may ask you to allow it in Privacy & Security before first
+launch.
+
+## Publish
+
+If this project needs a remote repository, create it under:
+
+```text
+https://github.com/khalilpong
+```

@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gesture-control"
+version = "0.1.0"
+description = "macOS app-like air gesture control using computer vision."
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "mediapipe",
+  "opencv-python",
+  "PySide6",
+  "pyautogui",
+  "pyyaml",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest",
+  "pyinstaller",
+]
+
+[project.scripts]
+gesture-control = "gesture_control.app:run_app"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

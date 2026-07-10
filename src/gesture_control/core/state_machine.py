@@ -41,9 +41,9 @@ class GestureStateMachine:
         if self.state is GestureState.PINCH_ROTATE:
             return self._update_pinch_rotate(right, timestamp)
 
-        if left is not None and is_fist(left):
+        if left is not None and is_fist(left, self.config):
             return self._hold_then_enter_fist(left, timestamp)
-        if right is not None and _is_pinched(right):
+        if right is not None and _is_pinched(right, self.config):
             return self._hold_then_enter_pinch(right, timestamp)
 
         self.state = GestureState.TRACKING if hands else GestureState.IDLE
@@ -53,7 +53,7 @@ class GestureStateMachine:
     def _handle_palm_pause(
         self, hands: list[HandLandmarks], timestamp: float
     ) -> list[GestureAction]:
-        palm = next((hand for hand in hands if is_palm_open(hand)), None)
+        palm = next((hand for hand in hands if is_palm_open(hand, self.config)), None)
         if palm is None:
             self._palm_since = None
             self._palm_consumed = False
@@ -110,7 +110,7 @@ class GestureStateMachine:
     def _update_fist_scroll(
         self, hand: HandLandmarks | None, timestamp: float
     ) -> list[GestureAction]:
-        if hand is None or not is_fist(hand):
+        if hand is None or not is_fist(hand, self.config):
             self.state = GestureState.TRACKING
             self._last_scroll_y = None
             self._clear_candidate()
@@ -137,7 +137,7 @@ class GestureStateMachine:
     def _update_pinch_rotate(
         self, hand: HandLandmarks | None, timestamp: float
     ) -> list[GestureAction]:
-        if hand is None or not _is_pinched(hand):
+        if hand is None or not _is_pinched(hand, self.config):
             self.state = GestureState.TRACKING
             self._last_pinch_angle = None
             self._clear_candidate()
@@ -190,8 +190,8 @@ def _find_hand(hands: list[HandLandmarks], handedness: str) -> HandLandmarks | N
     )
 
 
-def _is_pinched(hand: HandLandmarks) -> bool:
-    return pinch_distance(hand) <= 0.08
+def _is_pinched(hand: HandLandmarks, config: GestureConfig) -> bool:
+    return pinch_distance(hand) <= config.pinch_distance_threshold
 
 
 def _normalize_angle(value: float) -> float:

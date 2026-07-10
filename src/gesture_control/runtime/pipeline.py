@@ -57,6 +57,9 @@ class GestureRuntime:
 
         self._frames: LatestValueSlot[tuple[float, Any]] = LatestValueSlot()
         self._hands: LatestValueSlot[tuple[float, list[HandLandmarks]]] = LatestValueSlot()
+        self._debug_frames: LatestValueSlot[tuple[Any, list[HandLandmarks]]] | None = (
+            LatestValueSlot() if config.debug.overlay_enabled else None
+        )
         self._actions: Queue[GestureAction] = Queue()
         self._stop = Event()
         self._threads: list[Thread] = []
@@ -94,6 +97,17 @@ class GestureRuntime:
         self._safe_close(self.tracker)
         self._safe_close(self.camera)
 
+    def latest_debug_frame(self) -> tuple[Any, list[HandLandmarks]] | None:
+        """Non-blocking peek at the most recent raw frame and detected hands.
+
+        Returns None when overlay debugging is disabled in config, or when no
+        new frame has arrived since the last call.
+        """
+
+        if self._debug_frames is None:
+            return None
+        return self._debug_frames.get(timeout=0)
+
     def snapshot(self) -> RuntimeSnapshot:
         live_threads = [thread for thread in self._threads if thread.is_alive()]
         return RuntimeSnapshot(
@@ -122,7 +136,10 @@ class GestureRuntime:
 
             timestamp, frame = frame_item
             try:
-                self._hands.put((timestamp, self.tracker.detect(frame, timestamp)))
+                hands = self.tracker.detect(frame, timestamp)
+                self._hands.put((timestamp, hands))
+                if self._debug_frames is not None:
+                    self._debug_frames.put((frame, hands))
             except Exception as exc:  # pragma: no cover - defensive worker boundary
                 self._fail(exc)
 

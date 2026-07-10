@@ -2,6 +2,7 @@
 build/
 dist/
 *.spec
+!GestureControl.spec
 *.egg-info/
 __pycache__/
 *.py[cod]

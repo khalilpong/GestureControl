@@ -2,7 +2,10 @@ camera:
   index: 0
   width: 640
   height: 480
-  fps: 60
+  # 30 is what most built-in FaceTime cameras actually deliver reliably at
+  # this resolution; requesting 60 can cause stutter instead of an outright
+  # failure. Raise this only if you've confirmed your camera sustains it.
+  fps: 30
 gesture:
   max_hands: 2
   fist_hold_seconds: 0.15
@@ -12,6 +15,17 @@ gesture:
   deadzone: 0.015
   scroll_sensitivity: 1800.0
   volume_sensitivity: 0.08
+  # Fingertip-to-palm-center distance ratio below which a finger counts as
+  # curled in for fist detection. Raise these if a real fist never triggers
+  # scrolling; lower them if an open hand falsely triggers it.
+  fist_finger_curl_ratio: 0.30
+  fist_thumb_curl_ratio: 0.45
+  # Fingertip-to-palm-center distance ratio above which a finger counts as
+  # extended for open-palm (pause) detection.
+  palm_finger_extend_ratio: 0.35
+  palm_thumb_extend_ratio: 0.25
+  # Thumb-to-index-tip distance ratio below which the hand counts as pinched.
+  pinch_distance_threshold: 0.08
 command:
   scroll_hz: 30.0
   volume_hz: 10.0

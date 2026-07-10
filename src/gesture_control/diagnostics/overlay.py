@@ -64,3 +64,24 @@ def draw_overlay(frame: Any, hands: list[HandLandmarks], status: dict[str, objec
         )
         y += 22
     return frame
+
+
+def to_rgb_bytes(frame: Any) -> tuple[bytes, int, int, int] | None:
+    """Convert a BGR frame into (rgb_bytes, width, height, bytes_per_line) for GUI rendering.
+
+    Returns None when the frame isn't an image-like array or OpenCV is unavailable,
+    so callers can skip rendering without importing Qt or OpenCV themselves.
+    """
+
+    if not hasattr(frame, "shape"):
+        return None
+
+    try:
+        import cv2
+    except ImportError:
+        return None
+
+    rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    height, width = rgb.shape[:2]
+    channels = rgb.shape[2] if rgb.ndim == 3 else 1
+    return rgb.tobytes(), width, height, channels * width

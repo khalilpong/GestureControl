@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from math import atan2, hypot
 
+from gesture_control.config import GestureConfig
+
 from .types import HandLandmarks, Landmark
 
 
@@ -35,17 +37,24 @@ def pinch_angle(hand: HandLandmarks) -> float:
     return atan2(index.y - thumb.y, index.x - thumb.x)
 
 
-def is_fist(hand: HandLandmarks) -> bool:
+def is_fist(hand: HandLandmarks, config: GestureConfig | None = None) -> bool:
+    config = config or GestureConfig()
     center = _point_from_tuple(palm_center(hand))
     scale = _hand_scale(hand)
     if scale == 0:
         return False
 
-    curled_tips = [hand.landmarks[index] for index in (THUMB_TIP, *FINGER_TIPS)]
-    return all(_distance(point, center) <= 0.28 * scale for point in curled_tips)
+    fingers_curled = all(
+        _distance(hand.landmarks[index], center) <= config.fist_finger_curl_ratio * scale
+        for index in FINGER_TIPS
+    )
+    thumb = hand.landmarks[THUMB_TIP]
+    thumb_curled = _distance(thumb, center) <= config.fist_thumb_curl_ratio * scale
+    return fingers_curled and thumb_curled
 
 
-def is_palm_open(hand: HandLandmarks) -> bool:
+def is_palm_open(hand: HandLandmarks, config: GestureConfig | None = None) -> bool:
+    config = config or GestureConfig()
     center = _point_from_tuple(palm_center(hand))
     scale = _hand_scale(hand)
     if scale == 0:
@@ -55,10 +64,12 @@ def is_palm_open(hand: HandLandmarks) -> bool:
     for tip_index, pip_index in zip(FINGER_TIPS, FINGER_PIPS):
         tip = hand.landmarks[tip_index]
         pip = hand.landmarks[pip_index]
-        extended.append(tip.y < pip.y and _distance(tip, center) >= 0.35 * scale)
+        extended.append(
+            tip.y < pip.y and _distance(tip, center) >= config.palm_finger_extend_ratio * scale
+        )
 
     thumb = hand.landmarks[THUMB_TIP]
-    thumb_extended = _distance(thumb, center) >= 0.25 * scale
+    thumb_extended = _distance(thumb, center) >= config.palm_thumb_extend_ratio * scale
     return all(extended) and thumb_extended
 
 

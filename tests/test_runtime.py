@@ -54,6 +54,65 @@ def test_runtime_start_stop_opens_and_closes_fake_camera_and_tracker() -> None:
     assert stopped_snapshot.thread_count == 0
 
 
+def test_latest_debug_frame_is_none_when_overlay_disabled() -> None:
+    from dataclasses import replace
+
+    from gesture_control.runtime.pipeline import GestureRuntime
+
+    config = AppConfig.default()
+    config = replace(config, debug=replace(config.debug, overlay_enabled=False))
+
+    camera = FrameCamera()
+    tracker = FakeTracker()
+    controller = DryRunSystemController()
+    runtime = GestureRuntime(
+        config=config,
+        camera=camera,
+        tracker=tracker,
+        controller=controller,
+    )
+
+    runtime.start()
+    try:
+        time.sleep(0.03)
+        assert runtime.latest_debug_frame() is None
+    finally:
+        runtime.stop()
+
+
+def test_latest_debug_frame_returns_frame_and_hands_when_overlay_enabled() -> None:
+    from gesture_control.runtime.pipeline import GestureRuntime
+
+    config = AppConfig.default()
+    assert config.debug.overlay_enabled is True
+
+    camera = FrameCamera()
+    tracker = FakeTracker()
+    controller = DryRunSystemController()
+    runtime = GestureRuntime(
+        config=config,
+        camera=camera,
+        tracker=tracker,
+        controller=controller,
+    )
+
+    runtime.start()
+    try:
+        deadline = time.monotonic() + 1.0
+        item = None
+        while item is None and time.monotonic() < deadline:
+            item = runtime.latest_debug_frame()
+            if item is None:
+                time.sleep(0.01)
+    finally:
+        runtime.stop()
+
+    assert item is not None
+    frame, hands = item
+    assert frame == "frame-data"
+    assert hands == []
+
+
 class FakeCamera:
     def __init__(self) -> None:
         self.opened = False
@@ -65,6 +124,24 @@ class FakeCamera:
     def read(self) -> object | None:
         time.sleep(0.002)
         return None
+
+    def close(self) -> None:
+        self.closed = True
+
+
+class FrameCamera:
+    """Fake camera that continuously yields a sentinel frame for debug-view tests."""
+
+    def __init__(self) -> None:
+        self.opened = False
+        self.closed = False
+
+    def open(self) -> None:
+        self.opened = True
+
+    def read(self) -> object | None:
+        time.sleep(0.002)
+        return "frame-data"
 
     def close(self) -> None:
         self.closed = True

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+import sys
 from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any
@@ -10,7 +12,11 @@ class CameraConfig:
     index: int = 0
     width: int = 640
     height: int = 480
-    fps: int = 60
+    # Most built-in FaceTime cameras only cleanly negotiate 30fps at this
+    # resolution over AVFoundation; requesting 60fps can cause inconsistent
+    # frame pacing (stutter) instead of an outright failure, since the
+    # capture backend often accepts the request without honoring it.
+    fps: int = 30
 
 
 @dataclass(frozen=True)
@@ -23,6 +29,18 @@ class GestureConfig:
     deadzone: float = 0.015
     scroll_sensitivity: float = 1800.0
     volume_sensitivity: float = 0.08
+    # Fingertip-to-palm-center distance (as a ratio of hand size) below which a
+    # finger counts as "curled in" for fist detection. The thumb gets its own,
+    # looser ratio because it naturally rests further from the palm center than
+    # the other four fingers even in a fully closed fist.
+    fist_finger_curl_ratio: float = 0.30
+    fist_thumb_curl_ratio: float = 0.45
+    # Fingertip-to-palm-center distance ratio above which a finger counts as
+    # "extended" for open-palm detection.
+    palm_finger_extend_ratio: float = 0.35
+    palm_thumb_extend_ratio: float = 0.25
+    # Thumb-to-index-tip distance ratio below which the hand counts as pinched.
+    pinch_distance_threshold: float = 0.08
 
 
 @dataclass(frozen=True)
@@ -52,6 +70,31 @@ class AppConfig:
             command=CommandConfig(),
             debug=DebugConfig(),
         )
+
+
+def default_config_path() -> Path | None:
+    """Resolve config/default.yaml across dev, editable-install, and PyInstaller runs."""
+
+    env_override = os.environ.get("GESTURE_CONTROL_CONFIG")
+    if env_override:
+        return Path(env_override)
+
+    if getattr(sys, "frozen", False):
+        bundled = Path(getattr(sys, "_MEIPASS", "")) / "config" / "default.yaml"
+        if bundled.exists():
+            return bundled
+
+    repo_config = Path(__file__).resolve().parents[2] / "config" / "default.yaml"
+    if repo_config.exists():
+        return repo_config
+
+    return None
+
+
+def load_default_config() -> AppConfig:
+    """Load AppConfig from the resolved default config file, falling back to defaults."""
+
+    return load_config(default_config_path())
 
 
 def load_config(path: str | Path | None = None) -> AppConfig:

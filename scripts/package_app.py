@@ -8,33 +8,20 @@ import sys
 
 def main() -> int:
     root = Path(__file__).resolve().parents[1]
-    launcher_dir = root / "build" / "pyinstaller"
-    launcher_dir.mkdir(parents=True, exist_ok=True)
     config_dir = root / "build" / "pyinstaller-config"
     matplotlib_dir = root / "build" / "matplotlib"
     config_dir.mkdir(parents=True, exist_ok=True)
     matplotlib_dir.mkdir(parents=True, exist_ok=True)
-    launcher = launcher_dir / "gesture_control_launcher.py"
-    launcher.write_text(
-        "from gesture_control.app import run_app\n"
-        "raise SystemExit(run_app())\n",
-        encoding="utf-8",
-    )
+
+    spec_path = root / "GestureControl.spec"
 
     cmd = [
         sys.executable,
         "-m",
         "PyInstaller",
-        "--name",
-        "GestureControl",
-        "--windowed",
         "--noconfirm",
         "--clean",
-        "--paths",
-        str(root / "src"),
-        "--add-data",
-        f"{root / 'config' / 'default.yaml'}:config",
-        str(launcher),
+        str(spec_path),
     ]
     env = os.environ.copy()
     env["PYINSTALLER_CONFIG_DIR"] = str(config_dir)

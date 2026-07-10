@@ -63,6 +63,26 @@ def test_fist_and_open_palm_are_distinguished() -> None:
     assert is_palm_open(open_hand) is True
 
 
+def test_is_fist_tolerates_thumb_resting_away_from_palm_center() -> None:
+    from dataclasses import replace
+
+    from gesture_control.config import GestureConfig
+    from gesture_control.core.features import is_fist
+
+    fist = make_hand(open_palm=False)
+    # Simulate a thumb resting across the curled fingers rather than tucked
+    # into the palm centroid -- this is how a real fist usually looks, but
+    # would have failed the old single shared threshold for all five tips.
+    landmarks = list(fist.landmarks)
+    landmarks[4] = Landmark(0.35, 0.58)
+    realistic_fist = replace(fist, landmarks=landmarks)
+
+    assert is_fist(realistic_fist, GestureConfig()) is True
+
+    strict_config = GestureConfig(fist_finger_curl_ratio=0.28, fist_thumb_curl_ratio=0.28)
+    assert is_fist(realistic_fist, strict_config) is False
+
+
 def test_pinch_features_use_thumb_and_index_tip() -> None:
     from gesture_control.core.features import pinch_angle, pinch_distance
 

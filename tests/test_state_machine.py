@@ -109,6 +109,18 @@ def test_right_pinch_rotation_emits_volume_delta_after_hold() -> None:
     assert actions[0].value < 0
 
 
+def test_pinch_distance_threshold_is_configurable() -> None:
+    from gesture_control.config import GestureConfig
+    from gesture_control.core.state_machine import GestureStateMachine
+
+    machine = GestureStateMachine(GestureConfig(pinch_distance_threshold=0.001))
+
+    assert machine.update([make_pinched(angle_variant="flat")], timestamp=0.0) == []
+    assert machine.update([make_pinched(angle_variant="flat")], timestamp=0.16) == []
+
+    assert machine.state is not GestureState.PINCH_ROTATE
+
+
 def test_open_palm_toggles_pause_after_hold_and_blocks_scroll() -> None:
     from gesture_control.core.state_machine import GestureStateMachine
 
